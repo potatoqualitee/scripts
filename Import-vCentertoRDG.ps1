@@ -24,8 +24,8 @@
  .NOTES
     Author  : Chrissy LeMaire
     Requires: 	VMware.VimAutomation.Core Snapin (PowerCLI), read access to vCenter
-	Version: 0.5
-	DateUpdated: 2015-Apr-13
+	Version: 0.5.1
+	DateUpdated: 2015-Apr-30
 
  .LINK 
 	https://gallery.technet.microsoft.com/scriptcenter/Import-vCenter-to-RDG-4fb173f0
@@ -113,7 +113,7 @@ BEGIN {
 		foreach ($vm in $vms) {
 			$vmguest = $vm | Get-VMguest
 			$vmview = $vm |Get-View
-			$servername = $vmguest.IPAddress | Select -First 1
+			$servername = $vmguest.IPAddress | Where-Object { $_ -notlike "169.*" } | Select -First 1
 			$dns = $vm.ExtensionData.Guest.HostName
 			$description = ([System.Security.SecurityElement]::Escape($vm.Notes)).Trim()
 			$vmname = $vm.Name
