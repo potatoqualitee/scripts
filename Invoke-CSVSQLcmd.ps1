@@ -183,10 +183,10 @@ PROCESS {
 END {
 	# Move original schema.ini back if it existed
 	if ($schemaexists) { Move-Item "$env:TEMP\schema.ini" . -Force }
-	if ($Delimiter -ne "," -and $schemaexists -eq $false) { Remove-Item schema.ini -Force -ErrorAction ContinueSilently }
+	if ($Delimiter -ne "," -and $schemaexists -eq $false) { Remove-Item schema.ini -Force -ErrorAction SilentlyContinue }
 
 	# If going between shell architectures, import a properly structured datatable.
-	if ($dt -eq $null) { $dt = Import-Clixml "$env:TEMP\dt.xml"; Remove-Item  "$env:TEMP\dt.xml" -ErrorAction ContinueSilently }
+	if ($dt -eq $null) { $dt = Import-Clixml "$env:TEMP\dt.xml"; Remove-Item  "$env:TEMP\dt.xml" -ErrorAction SilentlyContinue }
 	
 	# Finally, return the resulting datatable
 	if ($shellswitch -eq $false) { return $dt }
