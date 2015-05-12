@@ -36,25 +36,25 @@
  .NOTES
     Author  : Chrissy LeMaire
     Requires: 	PowerShell 3.0
-	Version: 0.5
-	DateUpdated: 2015-May-6
+	Version: 0.7
+	DateUpdated: 2015-May-19
 
  .LINK 
 	https://gallery.technet.microsoft.com/scriptcenter/Query-CSV-with-SQL-c6c3c7e5
   	
  .EXAMPLE   
-	.\Invoke-CSVSQLcmd.ps1 -csv C:\temp\housingmarket.csv -sql "select address from table where price < 250000" -FirstRowColumnNames
+	.\Invoke-CsvSqlcmd.ps1 -csv C:\temp\housingmarket.csv -sql "select address from table where price < 250000" -FirstRowColumnNames
 	
 	This example return all rows with a price less than 250000 to the screen. The first row of the CSV file, C:\temp\housingmarket.csv, contains column names.
 	
  .EXAMPLE 
-	.\Invoke-CSVSQLcmd.ps1 -csv C:\temp\unstructured.csv -sql "select F1, F2, F3 from table" 
+	.\Invoke-CsvSqlcmd.ps1 -csv C:\temp\unstructured.csv -sql "select F1, F2, F3 from table" 
 	
 	This example will return the first three columns of all rows within the CSV file C:\temp\unstructured.csv to the screen. 
 	Since the -FirstRowColumnNames switch was not used, the query engine automatically names the columns or "fields", F1, F2, F3 and so on.
  
  .EXAMPLE 
-	$datatable = .\Invoke-CSVSQLcmd.ps1 -csv C:\temp\unstructured.csv -sql "select F1, F2, F3 from table" 
+	$datatable = .\Invoke-CsvSqlcmd.ps1 -csv C:\temp\unstructured.csv -sql "select F1, F2, F3 from table" 
 	$datatable.rows.count
  
 	The script returns rows of a datatable, and in this case, we create a datatable by assigning the output of the script to a variable, instead of to the screen.
@@ -158,7 +158,14 @@ PROCESS {
 	
 	# Execute the query, then load it into a datatable
 	$dt = New-Object System.Data.DataTable
-	$null = $dt.Load($cmd.ExecuteReader([System.Data.CommandBehavior]::CloseConnection))
+	try {
+		$null = $dt.Load($cmd.ExecuteReader([System.Data.CommandBehavior]::CloseConnection))
+	} catch { 
+		$errormessage = $_.Exception.Message.ToString()
+		if ($errormessage -like "*for one or more required parameters*") {
+			Write-Error "Looks like your SQL syntax may be invalid. `nCheck the documentation for more information or start with a simple 'select top 10 * from table'"
+		} else { Write-Error "Execute failed: $errormessage" }
+	}
 		
 	# Use a file to facilitate the passing of a datatable from x86 to x64 if necessary
 	if ($shellswitch) { 
