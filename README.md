@@ -28,3 +28,20 @@ Since the -FirstRowColumnNames switch was not used, the query engine automatical
     $datatable.rows.count
 
 Invoke-CSVSQLcmd.ps1 returns rows of a datatable, and in this case, we create a datatable by assigning the output of the script to a variable, instead of to the screen.
+
+Invoke-CSVSQLcmd.ps1
+--------------
+Imports vCenter Server folders and servers to an Remote Desktop Connection Manager 2.7 XML file named vSphere.rdg in the current directory. The display name of each server is the vCenter server name, and servername is the IP address, unless -DNSPreferred is specified. Note that it uses Get-Folder, which connects to all currently connected vCenter servers unless -Server is specified.
+
+Only Windows servers are added, and any empty folder (to include folders that only contain non-Windows VMs) will be skipped. Because RDCM does not really support nested groups, subgroups are named $folder-$subfolder. 
+	
+Remote Desktop Connection Manager 2.7 can be downloaded here: http://www.microsoft.com/en-us/download/details.aspx?id=44989
+
+    .\Import-vCentertoRDG.ps1
+Exports all folders and servers within the currently connected vCenter server. Server names appear as they do in vCenter, and use IP addresses to connect.
+
+    .\Import-vCentertoRDG.ps1 -Server vcenter.ad.local -Template H:\AD.rdg -DNSPreferred -Folder Infrastructure
+	
+Exports all folders and servers within the Infrastructure folder in the vcenter.ad.local vCenter server, and builds on top of AD.rdg, but saves to vSphere.rdg. Uses DNS names instead of IPs.
+If a DNS name is not available, it uses the IP address instead. If neither are available, it uses the vCenter server name.
+ 
