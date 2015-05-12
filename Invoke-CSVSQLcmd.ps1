@@ -89,7 +89,7 @@ BEGIN {
 	$jet = (New-Object System.Data.OleDb.OleDbEnumerator).GetElements() | Where-Object { $_.SOURCES_NAME -eq "Microsoft.Jet.OLEDB.4.0" }
 	if ($jet -eq $null) { 
 		Write-Warning "Switching to x86 shell, then switching back." 
-		Write-Warning "This also requires a file to be written, so patience may be necesary." 
+		Write-Warning "This also requires a temporary file to be written, so patience may be necessary." 
 	}
 }
 
@@ -128,7 +128,7 @@ PROCESS {
 	}
 	
 	# Setup the connection string. Data Source is the directory that contains the csv.
-	# The file name is also the table name, but with a "#" intstead of a "."
+	# The file name is also the table name, but with a "#" instead of a "."
 	$csv = (Resolve-Path $csv).Path
 	$datasource = Split-Path $csv
 	$tablename = (Split-Path $csv -leaf).Replace(".","#")
@@ -183,10 +183,10 @@ PROCESS {
 END {
 	# Move original schema.ini back if it existed
 	if ($schemaexists) { Move-Item "$env:TEMP\schema.ini" . -Force }
-	if ($Delimiter -ne "," -and $schemaexists -eq $false) { Remove-Item schema.ini -Force }
+	if ($Delimiter -ne "," -and $schemaexists -eq $false) { Remove-Item schema.ini -Force -ErrorAction ContinueSilently }
 
 	# If going between shell architectures, import a properly structured datatable.
-	if ($dt -eq $null) { $dt = Import-Clixml "$env:TEMP\dt.xml"; Remove-Item  "$env:TEMP\dt.xml" }
+	if ($dt -eq $null) { $dt = Import-Clixml "$env:TEMP\dt.xml"; Remove-Item  "$env:TEMP\dt.xml" -ErrorAction ContinueSilently }
 	
 	# Finally, return the resulting datatable
 	if ($shellswitch -eq $false) { return $dt }
