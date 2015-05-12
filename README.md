@@ -1,4 +1,4 @@
-# PowerShell scripts and supporting files.
+# Scripts and files
 Various scripts like Invoke-CSVSQLcmd.ps1
 
 Invoke-CSVSQLcmd.ps1
@@ -18,6 +18,7 @@ Other examples
     .\Invoke-CSVSQLcmd.ps1 -csv C:\temp\housingmarket.csv -sql "select address from table where price < 250000" -FirstRowColumnNames
 
 This example return all rows with a price less than 250000 to the screen. The first row of the CSV file, C:\temp\housingmarket.csv, contains column names.
+
     .\Invoke-CSVSQLcmd.ps1 -csv C:\temp\unstructured.csv -sql "select F1, F2, F3 from table where F3 > 7" 
 
 This example will return the first three columns of all rows within the CSV file C:\temp\unstructured.csv to the screen. 
