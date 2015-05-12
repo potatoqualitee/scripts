@@ -29,7 +29,7 @@ Since the -FirstRowColumnNames switch was not used, the query engine automatical
 
 Invoke-CSVSQLcmd.ps1 returns rows of a datatable, and in this case, we create a datatable by assigning the output of the script to a variable, instead of to the screen.
 
-Invoke-CSVSQLcmd.ps1
+Import-vCentertoRDG.ps1
 --------------
 Imports vCenter Server folders and servers to an Remote Desktop Connection Manager 2.7 XML file named vSphere.rdg in the current directory. The display name of each server is the vCenter server name, and servername is the IP address, unless -DNSPreferred is specified. Note that it uses Get-Folder, which connects to all currently connected vCenter servers unless -Server is specified.
 
