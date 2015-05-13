@@ -5,12 +5,6 @@
  .DESCRIPTION
 	This script will enable you to natively query a CSV file using SQL syntax using Microsoft's Text Driver.
 
-	If you are running this script on a 64-bit system, and the 64-bit Text Driver is not installed, the script will automatically switch to a 32-bit shell 
-	and execute the query. It will then communicate the data results to the 64-bit shell using Export-Clixml/Import-Clixml. 
-
-	While the shell switch process is rather quick, you can avoid this step by running the script within a 32-bit 
-	PowerShell shell ("$env:windir\syswow64\windowspowershell\v1.0\powershell.exe")
-
 	The script returns datarows. See the examples for more details.
 	
  .PARAMETER CSV
@@ -36,8 +30,8 @@
  .NOTES
     Author  : Chrissy LeMaire
     Requires: 	PowerShell 3.0
-	Version: 0.7
-	DateUpdated: 2015-May-19
+	Version: 0.9
+	DateUpdated: 2015-May-13
 
  .LINK 
 	https://gallery.technet.microsoft.com/scriptcenter/Query-CSV-with-SQL-c6c3c7e5
@@ -85,21 +79,25 @@ BEGIN {
 		}
 	}
 		
-	# Check for Jet driver. 
-	$jet = (New-Object System.Data.OleDb.OleDbEnumerator).GetElements() | Where-Object { $_.SOURCES_NAME -eq "Microsoft.Jet.OLEDB.4.0" }
-	if ($jet -eq $null) { 
+	# Check for drivers. 
+	$provider = (New-Object System.Data.OleDb.OleDbEnumerator).GetElements() | Where-Object { $_.SOURCES_NAME -like "Microsoft.ACE.OLEDB.*" }
+	
+	if ($provider -eq $null) {
+		$provider = (New-Object System.Data.OleDb.OleDbEnumerator).GetElements() | Where-Object { $_.SOURCES_NAME -like "Microsoft.Jet.OLEDB.*" }	
+	}
+	
+	if ($provider -eq $null) { 
 		Write-Warning "Switching to x86 shell, then switching back." 
 		Write-Warning "This also requires a temporary file to be written, so patience may be necessary." 
-	}
+	} else { $provider = $provider[0].SOURCES_NAME }
 }
 
 PROCESS {
 
-	# If the jet driver does not exist, the system is x64 and the Access Database Engine has not been installed.
-	# Switch to x86 shell, which natively supports jet, then encode the SQL string, since some characters
-	# can cause issues when being re-passed.
+	# Try hard to find a suitable provider; switch to x86 if necessary.
+	# Encode the SQL string, since some characters
 	
-	if ($jet -eq $null) {
+	if ($provider -eq $null) {
 		$bytes  = [System.Text.Encoding]::UTF8.GetBytes($sql)
 		$sql = [System.Convert]::ToBase64String($bytes)
 		if ($firstRowColumnNames) { $frcn = "-FirstRowColumnNames" }
@@ -138,7 +136,7 @@ PROCESS {
 		$false { $frcn = "No" }
 	}
 		
-	$connstring = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=$datasource;Extended Properties='text;HDR=$frcn;';"
+	$connstring = "Provider=$provider;Data Source=$datasource;Extended Properties='text;HDR=$frcn;';"
 
 	# To make command line queries easier, let the user just specify "table" instead of the
 	# OleDbconnection formatted name (file.csv -> file#csv)
