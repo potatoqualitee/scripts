@@ -30,7 +30,7 @@
  .NOTES
     Author  : Chrissy LeMaire
     Requires: 	PowerShell 3.0
-	Version: 0.9
+	Version: 0.9.1
 	DateUpdated: 2015-May-13
 
  .LINK 
@@ -89,7 +89,9 @@ BEGIN {
 	if ($provider -eq $null) { 
 		Write-Warning "Switching to x86 shell, then switching back." 
 		Write-Warning "This also requires a temporary file to be written, so patience may be necessary." 
-	} else { $provider = $provider[0].SOURCES_NAME }
+	} else { 
+		if ($provider.gettype().name -eq "DataRow") { $provider = $provider.SOURCES_NAME } else {  $provider = $provider[0].SOURCES_NAME  }
+	}
 }
 
 PROCESS {
