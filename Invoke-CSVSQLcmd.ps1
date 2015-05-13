@@ -90,7 +90,7 @@ BEGIN {
 		Write-Warning "Switching to x86 shell, then switching back." 
 		Write-Warning "This also requires a temporary file to be written, so patience may be necessary." 
 	} else { 
-		if ($provider.gettype().name -eq "DataRow") { $provider = $provider.SOURCES_NAME } else {  $provider = $provider[0].SOURCES_NAME  }
+		if ($provider -is [system.array]) { $provider = $provider[0].SOURCES_NAME } else {  $provider = $provider.SOURCES_NAME }
 	}
 }
 
