@@ -14,7 +14,7 @@ Locate searches are per-user, and the database is stored securely in your home d
 Note: This is a work in progress (version 0.x), and I'm currently testing it in various environments. Please let me know if you have any issues. I fixed a few bugs over the weekend. Please download the newest version.
 
 Basic functionality
---
+---
 	# install locate with basic functionality
     .\Invoke-Locate.ps1 -install
 	
@@ -34,7 +34,7 @@ Basic functionality
 	locate powers_ell.exe
 	
 Advanced functionality
---
+---
 
 	# install locate with advanced functionality -- takes longer to populate database, but provides additional features
     .\Invoke-Locate.ps1 -install -advanced
