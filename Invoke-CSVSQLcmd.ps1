@@ -8,7 +8,7 @@
 	The script returns datarows. See the examples for more details.
 	
  .PARAMETER CSV
-  The location of the CSV file to be queried.
+  The location of the CSV files to be queried. Multiple files are allowed, so long as they all support the same SQL query, and delimiter.
 	
  .PARAMETER FirstRowColumnNames
   This parameter specifies whether the first row contains column names. If the first row does not contain column names, the query engine automatically names the columns or "fields", F1, F2, F3 and so on.
@@ -30,8 +30,8 @@
  .NOTES
     Author  : Chrissy LeMaire
     Requires: 	PowerShell 3.0
-	Version: 0.9.1
-	DateUpdated: 2015-May-13
+	Version: 0.9.3
+	DateUpdated: 2015-May-16
 
  .LINK 
 	https://gallery.technet.microsoft.com/scriptcenter/Query-CSV-with-SQL-c6c3c7e5
@@ -55,11 +55,11 @@
  
 #> 
 #Requires -Version 3.0
-
+[CmdletBinding()] 
 Param(
 	[Parameter(Mandatory=$true)] 
 	[ValidateScript({Test-Path $_ })]
-	[string]$csv,
+	[string[]]$csv,
 	[switch]$FirstRowColumnNames,
 	[string]$Delimiter = ",",
 	[Parameter(Mandatory=$true)] 
@@ -68,17 +68,19 @@ Param(
 	)
 	
 BEGIN {
-	# If a non-default Delimiter is specified, a schema.ini file must be used.
+	# In order to ensure consistent results, a schema.ini file must be created.
 	# If a schema.ini currently exists, it will be moved to TEMP temporarily.
-	# Once the script has finished executing, it will be moved back.
-	
-	if ($Delimiter -ne ",") {
-		$schemaexists = Test-Path schema.ini
+	$movedschemaini = @{}
+	foreach ($file in $csv) {
+		$file = (Resolve-Path $file).Path; $directory = Split-Path $file
+		$schemaexists = Test-Path "$directory\schema.ini"
 		if ($schemaexists -eq $true) {
-			Move-Item schema.ini $env:TEMP -Force
+			$newschemaname = "$env:TEMP\$(Split-Path $file -leaf)-schema.ini"
+			$movedschemaini.Add($newschemaname,"$directory\schema.ini")
+			Move-Item "$directory\schema.ini" $newschemaname -Force
 		}
 	}
-		
+	
 	# Check for drivers. 
 	$provider = (New-Object System.Data.OleDb.OleDbEnumerator).GetElements() | Where-Object { $_.SOURCES_NAME -like "Microsoft.ACE.OLEDB.*" }
 	
@@ -90,12 +92,15 @@ BEGIN {
 		Write-Warning "Switching to x86 shell, then switching back." 
 		Write-Warning "This also requires a temporary file to be written, so patience may be necessary." 
 	} else { 
-		if ($provider -is [system.array]) { $provider = $provider[0].SOURCES_NAME } else {  $provider = $provider.SOURCES_NAME }
+		if ($provider -is [system.array]) { $provider = $provider[$provider.GetUpperBound(0)].SOURCES_NAME } else {  $provider = $provider.SOURCES_NAME }
 	}
 }
 
 PROCESS {
 
+	# Create the resulting datatable
+	$dt = New-Object System.Data.DataTable
+	
 	# Try hard to find a suitable provider; switch to x86 if necessary.
 	# Encode the SQL string, since some characters
 	
@@ -117,76 +122,21 @@ PROCESS {
 	if ($sql.ToLower() -notmatch "\btable\b") {
 		throw "SQL statement must contain the word 'table'. Please see this script's documentation for more details."
 	}
-
-	# Unfortunately, passing delimiter within the connection string is unreliable, so we'll use schema.ini instead
-	# if using any delimiter other than a comma.
 	
-	if ($Delimiter -ne ",") {
-		$filename = Split-Path $csv -leaf
-		Set-Content -Path schema.ini -Value "[$filename]"
-		Add-Content -Path schema.ini -Value "Format=Delimited($Delimiter)"
-	}
 	
-	# Setup the connection string. Data Source is the directory that contains the csv.
-	# The file name is also the table name, but with a "#" instead of a "."
-	$csv = (Resolve-Path $csv).Path
-	$datasource = Split-Path $csv
-	$tablename = (Split-Path $csv -leaf).Replace(".","#")
 	
 	switch ($FirstRowColumnNames) {
 		$true { $frcn = "Yes" }
 		$false { $frcn = "No" }
 	}
 		
-	$connstring = "Provider=$provider;Data Source=$datasource;Extended Properties='text;HDR=$frcn;';"
 
-	# To make command line queries easier, let the user just specify "table" instead of the
-	# OleDbconnection formatted name (file.csv -> file#csv)
-	$sql = $sql -replace "\btable\b"," [$tablename]"
-	
-	# Setup the OleDbconnection
-	$conn = New-Object System.Data.OleDb.OleDbconnection
-	$conn.ConnectionString = $connstring
-	try { $conn.Open() } catch { throw "Could not open OLEDB connection." }
-	
-	# Setup the OleDBCommand
-	try {
-		$cmd = New-Object System.Data.OleDB.OleDBCommand
-		$cmd.Connection = $conn
-		$cmd.CommandText = $sql
-	} catch { throw "Could not open OLEDB connection." }
-	
-	# Execute the query, then load it into a datatable
-	$dt = New-Object System.Data.DataTable
-	try {
-		$null = $dt.Load($cmd.ExecuteReader([System.Data.CommandBehavior]::CloseConnection))
-	} catch { 
-		$errormessage = $_.Exception.Message.ToString()
-		if ($errormessage -like "*for one or more required parameters*") {
-			Write-Error "Looks like your SQL syntax may be invalid. `nCheck the documentation for more information or start with a simple 'select top 10 * from table'"
-		} else { Write-Error "Execute failed: $errormessage" }
-	}
 		
-	# Use a file to facilitate the passing of a datatable from x86 to x64 if necessary
-	if ($shellswitch) { 
-		try { $dt | Export-Clixml "$env:TEMP\dt.xml" } catch { throw "Could not export datatable to file." }
 	}
-	
-	# This should automatically close, but just in case...
-	try {
-		if ($conn.State -eq "Open") { $null = $conn.close }
-		$null = $cmd.Dispose; $null = $conn.Dispose
-	} catch { Write-Warning "Could not close connection. This is just an informational message." }
-	
 }
 
 END {
-	# Move original schema.ini back if it existed
-	if ($schemaexists) { Move-Item "$env:TEMP\schema.ini" . -Force }
-	if ($Delimiter -ne "," -and $schemaexists -eq $false) { Remove-Item schema.ini -Force -ErrorAction SilentlyContinue }
-
 	# If going between shell architectures, import a properly structured datatable.
-	if ($dt -eq $null) { $dt = Import-Clixml "$env:TEMP\dt.xml"; Remove-Item  "$env:TEMP\dt.xml" -ErrorAction SilentlyContinue }
 	
 	# Finally, return the resulting datatable
 	if ($shellswitch -eq $false) { return $dt }
